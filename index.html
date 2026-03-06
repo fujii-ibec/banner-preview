@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Banner Preview Studio</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+
+/* ══ MOBILE ══ */
+body.mobile-preview {
+  margin:0; padding:0; background:#111;
+  min-height:100vh; font-family:-apple-system,sans-serif;
+  display:flex; flex-direction:column; overflow:hidden;
+}
+.mp-loading {
+  flex:1; display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  gap:18px; color:rgba(255,255,255,.4);
+  font-family:'DM Mono',monospace; font-size:13px; text-align:center; padding:32px;
+}
+.mp-spinner {
+  width:36px; height:36px;
+  border:2.5px solid rgba(255,255,255,.1);
+  border-top-color:#c8f53a; border-radius:50%;
+  animation:spin .8s linear infinite;
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+.mp-err { color:#ff6b6b; font-size:13px; line-height:1.9; }
+
+.mp-stage {
+  flex:1; display:flex; align-items:center; justify-content:center;
+  overflow:hidden; padding:16px 16px 156px;
+  background-color:#1c1c1c;
+  background-image:
+    linear-gradient(rgba(255,255,255,.055) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.055) 1px,transparent 1px);
+  background-size:20px 20px;
+  display:none;
+}
+.mp-stage.show { display:flex; }
+
+.mp-banner-wrap { position:relative; flex-shrink:0; }
+.mp-banner-wrap img { width:100%; height:auto; display:block; }
+.mp-size-label {
+  position:absolute; bottom:-22px; left:50%; transform:translateX(-50%);
+  font-size:11px; color:rgba(255,255,255,.4); white-space:nowrap;
+  font-family:'DM Mono',monospace;
+}
+
+.mp-bar {
+  position:fixed; bottom:0; left:0; right:0; z-index:50;
+  background:rgba(10,10,13,.95);
+  backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+  border-top:1px solid rgba(255,255,255,.07);
+  padding:12px 18px max(16px,env(safe-area-inset-bottom));
+  display:flex; flex-direction:column; gap:10px;
+}
+.mp-bar-row { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.mp-lbl { font-size:10px; color:rgba(255,255,255,.3); letter-spacing:.13em; text-transform:uppercase; }
+.mp-val-w { font-family:'DM Mono',monospace; font-size:22px; font-weight:500; color:#c8f53a; min-width:88px; text-align:center; }
+.mp-val-h { font-family:'DM Mono',monospace; font-size:12px; color:rgba(74,240,200,.8); }
+.mp-btns { display:flex; gap:8px; align-items:center; }
+.mp-btn {
+  background:rgba(255,255,255,.07); border:1.5px solid rgba(255,255,255,.1);
+  border-radius:12px; color:#f0f0f0; font-size:24px;
+  width:52px; height:52px; display:flex; align-items:center; justify-content:center;
+  cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent;
+}
+.mp-btn:active { background:rgba(200,245,58,.2); border-color:#c8f53a; color:#c8f53a; transform:scale(.91); }
+.mp-divider { height:1px; background:rgba(255,255,255,.06); }
+.mp-steps { display:flex; gap:5px; }
+.mp-step {
+  background:none; border:1px solid rgba(255,255,255,.1); border-radius:7px;
+  color:rgba(255,255,255,.3); font-family:'DM Mono',monospace; font-size:11px;
+  padding:5px 11px; cursor:pointer; -webkit-tap-highlight-color:transparent;
+}
+.mp-step.active { background:rgba(200,245,58,.1); border-color:#c8f53a; color:#c8f53a; }
+
+/* ══ DESKTOP ══ */
+:root {
+  --bg:#0e0e10; --surface:#18181c; --surface2:#222228;
+  --border:#2e2e38; --accent:#c8f53a; --accent2:#4af0c8;
+  --text:#f0f0f0; --muted:#888890;
+}
+body.desktop-ui { background:var(--bg); color:var(--text); font-family:'DM Mono',monospace; min-height:100vh; overflow-x:hidden; margin:0; padding:0; }
+header { display:flex; align-items:center; justify-content:space-between; padding:18px 28px; border-bottom:1px solid var(--border); background:var(--bg); position:sticky; top:0; z-index:100; }
+.logo { font-family:'Syne',sans-serif; font-weight:800; font-size:19px; letter-spacing:-0.5px; display:flex; align-items:center; gap:10px; }
+.logo-dot { width:9px; height:9px; background:var(--accent); border-radius:50%; animation:pulse 2s infinite; }
+@keyframes pulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.5);opacity:.6} }
+.header-meta { font-size:11px; color:var(--muted); letter-spacing:.1em; }
+.app { display:grid; grid-template-columns:296px 1fr; height:calc(100vh - 61px); }
+.sidebar { background:var(--surface); border-right:1px solid var(--border); overflow-y:auto; padding:20px; display:flex; flex-direction:column; gap:22px; }
+.sidebar::-webkit-scrollbar { width:3px; } .sidebar::-webkit-scrollbar-thumb { background:var(--border); }
+.section-label { font-size:10px; letter-spacing:.15em; color:var(--muted); text-transform:uppercase; margin-bottom:10px; }
+.drop-zone { border:1.5px dashed var(--border); border-radius:10px; padding:22px 14px; text-align:center; cursor:pointer; transition:all .2s; background:var(--surface2); }
+.drop-zone:hover,.drop-zone.drag-over { border-color:var(--accent); background:rgba(200,245,58,.05); }
+.drop-icon { font-size:26px; margin-bottom:8px; transition:transform .2s; display:block; }
+.drop-zone.drag-over .drop-icon { transform:scale(1.2); }
+.drop-text { font-size:12px; color:var(--muted); line-height:1.6; }
+.drop-text strong { color:var(--accent); display:block; font-size:13px; margin-bottom:3px; }
+#fileInput { display:none; }
+.img-info { background:var(--surface2); border-radius:10px; padding:12px; display:none; flex-direction:column; gap:7px; margin-top:10px; }
+.img-info.visible { display:flex; }
+.img-thumb { width:100%; height:76px; object-fit:contain; border-radius:5px; background:#111; }
+.info-row { display:flex; justify-content:space-between; align-items:center; font-size:11.5px; }
+.info-key { color:var(--muted); } .info-val { color:var(--accent2); font-weight:500; }
+.info-val.sm { font-size:10px; max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.view-toggle { display:flex; flex-direction:column; gap:5px; }
+.toggle-btn { background:var(--surface2); border:1.5px solid var(--border); border-radius:8px; padding:9px 13px; color:var(--text); font-family:'DM Mono',monospace; font-size:12px; cursor:pointer; transition:all .15s; text-align:left; display:flex; align-items:center; gap:9px; }
+.toggle-btn:hover { border-color:var(--muted); }
+.toggle-btn.active { border-color:var(--accent); background:rgba(200,245,58,.07); color:var(--accent); }
+.preset-grid { display:grid; grid-template-columns:1fr 1fr; gap:5px; }
+.preset-btn { background:var(--surface2); border:1.5px solid var(--border); border-radius:7px; padding:7px; font-family:'DM Mono',monospace; font-size:11px; color:var(--muted); cursor:pointer; transition:all .15s; text-align:center; line-height:1.5; }
+.preset-btn:hover { border-color:var(--muted); color:var(--text); }
+.preset-btn.active { border-color:var(--accent2); color:var(--accent2); }
+.preset-btn .pname { font-size:12px; } .preset-btn .psize { font-size:10px; }
+.width-row { display:flex; gap:8px; align-items:center; }
+.size-input-wrap { display:flex; align-items:center; background:var(--surface2); border:1.5px solid var(--border); border-radius:8px; overflow:hidden; flex:1; transition:border-color .15s; }
+.size-input-wrap:focus-within { border-color:var(--accent); }
+.size-input { background:none; border:none; color:var(--text); font-family:'DM Mono',monospace; font-size:14px; padding:9px 10px; width:100%; outline:none; }
+.size-unit { font-size:10px; color:var(--muted); padding-right:10px; white-space:nowrap; }
+.auto-badge { background:var(--surface2); border:1.5px solid var(--border); border-radius:8px; padding:9px 12px; font-size:11px; color:var(--accent2); white-space:nowrap; display:flex; align-items:center; gap:4px; }
+.auto-badge .ab-key { color:var(--muted); font-size:10px; }
+.apply-btn { width:100%; background:var(--accent); color:#0e0e10; border:none; border-radius:8px; padding:9px; font-family:'DM Mono',monospace; font-size:12px; font-weight:500; cursor:pointer; transition:opacity .15s; margin-top:8px; }
+.apply-btn:hover { opacity:.85; }
+.computed-size { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:10px 12px; font-size:11px; display:none; flex-direction:column; gap:6px; margin-top:8px; }
+.computed-size.visible { display:flex; }
+.cs-row { display:flex; justify-content:space-between; }
+.cs-key { color:var(--muted); } .cs-val { color:var(--text); } .cs-val.hi { color:var(--accent); font-weight:500; }
+.scale-row { display:flex; align-items:center; gap:10px; }
+input[type="range"] { -webkit-appearance:none; flex:1; height:3px; background:var(--border); border-radius:2px; outline:none; }
+input[type="range"]::-webkit-slider-thumb { -webkit-appearance:none; width:13px; height:13px; background:var(--accent); border-radius:50%; cursor:pointer; }
+.scale-val { font-size:12px; color:var(--accent); min-width:36px; text-align:right; }
+
+/* QR section */
+.qr-section { background:var(--surface2); border:1.5px solid var(--border); border-radius:10px; padding:14px; display:flex; flex-direction:column; gap:10px; }
+.qr-desc { font-size:11px; color:var(--muted); line-height:1.8; }
+
+/* Worker URL入力 */
+.worker-input-wrap {
+  display:flex; align-items:center; background:var(--bg);
+  border:1.5px solid var(--border); border-radius:8px; overflow:hidden;
+  transition:border-color .15s;
+}
+.worker-input-wrap:focus-within { border-color:var(--accent2); }
+.worker-input {
+  background:none; border:none; color:var(--text);
+  font-family:'DM Mono',monospace; font-size:11px;
+  padding:8px 10px; width:100%; outline:none;
+}
+.worker-input::placeholder { color:var(--muted); }
+.worker-set-btn {
+  background:none; border:none; border-left:1px solid var(--border);
+  color:var(--accent2); font-family:'DM Mono',monospace; font-size:11px;
+  padding:8px 12px; cursor:pointer; white-space:nowrap; transition:background .15s;
+}
+.worker-set-btn:hover { background:rgba(74,240,200,.08); }
+
+.send-btn {
+  width:100%; background:var(--accent); color:#0e0e10; border:none;
+  border-radius:8px; padding:10px; font-family:'DM Mono',monospace;
+  font-size:12px; font-weight:700; cursor:pointer; transition:all .15s;
+  display:flex; align-items:center; justify-content:center; gap:8px;
+}
+.send-btn:hover { opacity:.88; }
+.send-btn:disabled { opacity:.35; cursor:not-allowed; }
+.send-btn.sending { background:var(--surface2); border:1.5px solid var(--border); color:var(--accent2); }
+.send-btn.sent { background:rgba(200,245,58,.15); border:1.5px solid var(--accent); color:var(--accent); }
+
+.qr-state { font-size:11px; border-radius:7px; padding:9px 12px; display:flex; align-items:center; gap:7px; }
+.qr-state.idle { background:rgba(255,255,255,.04); border:1px solid var(--border); color:var(--muted); }
+.qr-state.ok   { background:rgba(200,245,58,.08); border:1px solid rgba(200,245,58,.25); color:var(--accent); }
+.qr-state.warn { background:rgba(255,100,100,.07); border:1px solid rgba(255,100,100,.2); color:#ff8080; }
+.qr-dot { width:6px; height:6px; border-radius:50%; background:currentColor; flex-shrink:0; }
+.qr-box { display:flex; justify-content:center; }
+#qrcode canvas, #qrcode img { border-radius:8px; display:block; }
+.qr-key-display {
+  text-align:center; font-family:'DM Mono',monospace;
+  display:none;
+}
+.qr-key-label { font-size:10px; color:var(--muted); margin-bottom:4px; }
+.qr-key-val { font-size:28px; font-weight:700; color:var(--accent); letter-spacing:.2em; }
+.qr-key-exp { font-size:10px; color:var(--muted); margin-top:4px; }
+
+/* canvas */
+.canvas { background:var(--bg); overflow:auto; display:flex; align-items:flex-start; justify-content:center; padding:36px; position:relative; }
+.canvas::before { content:''; position:fixed; inset:0; background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px); background-size:32px 32px; opacity:.18; pointer-events:none; }
+.empty-state { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; color:var(--muted); text-align:center; height:100%; min-height:360px; }
+.empty-icon { font-size:44px; opacity:.35; } .empty-text { font-size:13px; line-height:2; }
+.preview-area { display:none; }
+.preview-area.visible { display:block; animation:fadeUp .3s ease; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+.pc-frame { background:#1a1a20; border-radius:14px; border:2px solid #333; box-shadow:0 0 0 1px #111,0 28px 70px rgba(0,0,0,.65); overflow:hidden; }
+.pc-bar { background:#252530; height:36px; display:flex; align-items:center; padding:0 13px; gap:6px; border-bottom:1px solid #333; flex-shrink:0; }
+.pc-dot { width:10px; height:10px; border-radius:50%; }
+.pc-dot.red{background:#ff5f57} .pc-dot.yel{background:#febc2e} .pc-dot.grn{background:#2bc840}
+.pc-url { background:#1a1a22; border-radius:5px; padding:3px 11px; font-size:11px; color:var(--muted); margin-left:8px; flex:1; max-width:280px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.pc-viewport { overflow:hidden; background:#f5f5f5; }
+.phone-outer { position:relative; display:inline-block; }
+.phone-frame { background:#1a1a22; border:2.5px solid #444; box-shadow:inset 0 0 0 1.5px #222,0 0 0 1px #111,0 28px 70px rgba(0,0,0,.65); overflow:hidden; position:relative; }
+.phone-notch { position:absolute; left:50%; transform:translateX(-50%); background:#1a1a22; z-index:10; display:flex; align-items:center; justify-content:center; gap:7px; }
+.notch-cam { background:#111; border-radius:50%; border:1.5px solid #2a2a35; }
+.notch-speaker { background:#111; border-radius:3px; }
+.phone-viewport { overflow:hidden; overflow-y:auto; background:#f5f5f5; scrollbar-width:none; }
+.phone-viewport::-webkit-scrollbar { display:none; }
+.phone-btn { position:absolute; background:#333; border-radius:3px; left:-4px; width:3px; }
+.phone-btn-pwr { right:-4px; left:auto; }
+.frame-page { width:100%; display:flex; flex-direction:column; align-items:center; background:#f0f0f0; }
+.mock-ui { width:100%; background:white; border-bottom:1px solid #ddd; display:flex; gap:8px; align-items:center; flex-shrink:0; }
+.mock-logo { background:#ddd; border-radius:3px; }
+.mock-nav { display:flex; gap:5px; margin-left:auto; }
+.mock-nav-item { background:#e0e0e0; border-radius:2px; }
+.banner-slot { flex-shrink:0; position:relative; overflow:hidden; background:#e8e8e8; }
+.banner-slot img { width:100%; height:auto; display:block; }
+.size-overlay { position:absolute; bottom:4px; right:5px; background:rgba(0,0,0,.72); color:var(--accent); font-family:'DM Mono',monospace; font-size:10px; padding:2px 7px; border-radius:4px; pointer-events:none; backdrop-filter:blur(4px); }
+.mock-body { width:100%; display:flex; flex-direction:column; padding:12px; gap:8px; background:#f0f0f0; }
+.mock-line { background:#ddd; border-radius:3px; }
+.mock-line.short{width:55%} .mock-line.med{width:78%}
+.compare-wrap { display:flex; gap:36px; align-items:flex-start; flex-wrap:wrap; }
+.compare-item { display:flex; flex-direction:column; align-items:center; gap:10px; }
+.compare-label { font-size:11px; color:var(--muted); letter-spacing:.1em; }
+.info-bar { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--surface2); border:1px solid var(--border); border-radius:100px; padding:9px 22px; display:flex; gap:20px; align-items:center; font-size:11.5px; box-shadow:0 8px 30px rgba(0,0,0,.5); z-index:200; opacity:0; transition:opacity .3s; pointer-events:none; }
+.info-bar.visible { opacity:1; }
+.info-chip { display:flex; align-items:center; gap:5px; }
+.chip-key { color:var(--muted); } .chip-val.accent { color:var(--accent); } .chip-val.accent2 { color:var(--accent2); }
+.info-divider { width:1px; height:14px; background:var(--border); }
+.zoom-controls { position:fixed; bottom:20px; right:28px; display:flex; gap:5px; z-index:200; }
+.zoom-btn { background:var(--surface2); border:1.5px solid var(--border); border-radius:7px; color:var(--text); width:34px; height:34px; font-size:15px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all .15s; }
+.zoom-btn:hover { border-color:var(--accent); color:var(--accent); }
+</style>
+</head>
+<body>
+
+<!-- ══ MOBILE ══ -->
+<div id="mobile-ui" style="display:none; width:100%; min-height:100vh; flex-direction:column;">
+  <div class="mp-loading" id="mpLoading">
+    <div class="mp-spinner"></div>
+    <div>データを取得中…</div>
+  </div>
+
+  <div class="mp-stage" id="mpStage">
+    <div class="mp-banner-wrap" id="mpBannerWrap">
+      <img id="mpBannerImg" src="" alt="banner">
+      <div class="mp-size-label" id="mpSizeLabel"></div>
+    </div>
+  </div>
+
+  <div class="mp-bar" id="mpBar" style="display:none;">
+    <div class="mp-bar-row">
+      <div>
+        <div class="mp-lbl" style="margin-bottom:5px;">STEP</div>
+        <div class="mp-steps">
+          <button class="mp-step"        data-step="1"   onclick="setStep(1)">1px</button>
+          <button class="mp-step active" data-step="10"  onclick="setStep(10)">10px</button>
+          <button class="mp-step"        data-step="50"  onclick="setStep(50)">50px</button>
+          <button class="mp-step"        data-step="100" onclick="setStep(100)">100px</button>
+        </div>
+      </div>
+      <div style="text-align:right;">
+        <div class="mp-lbl" style="margin-bottom:3px;">H (AUTO)</div>
+        <div class="mp-val-h" id="mpValH">—</div>
+      </div>
+    </div>
+    <div class="mp-divider"></div>
+    <div class="mp-bar-row">
+      <div class="mp-btns">
+        <button class="mp-btn"
+          ontouchstart="startRepeat('minus',event)" ontouchend="stopRepeat()" ontouchcancel="stopRepeat()"
+          onmousedown="startRepeat('minus',event)"  onmouseup="stopRepeat()"  onmouseleave="stopRepeat()">−</button>
+        <div class="mp-val-w" id="mpValW">—</div>
+        <button class="mp-btn"
+          ontouchstart="startRepeat('plus',event)"  ontouchend="stopRepeat()" ontouchcancel="stopRepeat()"
+          onmousedown="startRepeat('plus',event)"   onmouseup="stopRepeat()"  onmouseleave="stopRepeat()">＋</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ DESKTOP ══ -->
+<div id="desktop-ui" style="display:none; width:100%;">
+  <header>
+    <div class="logo"><div class="logo-dot"></div>Banner Preview Studio</div>
+    <div class="header-meta">BANNER SIZE CHECKER</div>
+  </header>
+  <div class="app">
+    <aside class="sidebar">
+
+      <div>
+        <div class="section-label">① Upload Banner</div>
+        <div class="drop-zone" id="dropZone">
+          <input type="file" id="fileInput" accept="image/*">
+          <span class="drop-icon">⬆</span>
+          <div class="drop-text"><strong>ドラッグ & ドロップ</strong>またはクリックして選択<br>PNG / JPG / GIF</div>
+        </div>
+        <div class="img-info" id="imgInfo">
+          <img class="img-thumb" id="imgThumb" src="" alt="">
+          <div class="info-row"><span class="info-key">元サイズ</span><span class="info-val" id="origSize">—</span></div>
+          <div class="info-row"><span class="info-key">アスペクト比</span><span class="info-val" id="origAspect">—</span></div>
+          <div class="info-row"><span class="info-key">ファイル</span><span class="info-val sm" id="fileName">—</span></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="section-label">② 表示モード</div>
+        <div class="view-toggle">
+          <button class="toggle-btn active" data-mode="pc"      onclick="setMode('pc')"><span>🖥</span> PC / Desktop</button>
+          <button class="toggle-btn"        data-mode="phone"   onclick="setMode('phone')"><span>📱</span> スマートフォン</button>
+          <button class="toggle-btn"        data-mode="compare" onclick="setMode('compare')"><span>◫</span> 並べて比較</button>
+        </div>
+      </div>
+
+      <div>
+        <div class="section-label">③ デバイスプリセット</div>
+        <div class="preset-grid">
+          <button class="preset-btn active" data-w="1440" data-h="900"  onclick="applyPreset(this)"><div class="pname">MacBook</div><div class="psize">1440×900</div></button>
+          <button class="preset-btn"        data-w="1920" data-h="1080" onclick="applyPreset(this)"><div class="pname">Full HD</div><div class="psize">1920×1080</div></button>
+          <button class="preset-btn"        data-w="1280" data-h="720"  onclick="applyPreset(this)"><div class="pname">HD</div><div class="psize">1280×720</div></button>
+          <button class="preset-btn"        data-w="390"  data-h="844"  onclick="applyPreset(this)"><div class="pname">iPhone 15</div><div class="psize">390×844</div></button>
+          <button class="preset-btn"        data-w="360"  data-h="780"  onclick="applyPreset(this)"><div class="pname">Android</div><div class="psize">360×780</div></button>
+          <button class="preset-btn"        data-w="375"  data-h="667"  onclick="applyPreset(this)"><div class="pname">iPhone SE</div><div class="psize">375×667</div></button>
+        </div>
+      </div>
+
+      <div>
+        <div class="section-label">④ バナー幅指定（H = Auto）</div>
+        <div class="width-row">
+          <div class="size-input-wrap">
+            <input class="size-input" type="number" id="bannerW" placeholder="728" value="728" min="1">
+            <span class="size-unit">px W</span>
+          </div>
+          <div class="auto-badge"><span class="ab-key">H</span>AUTO</div>
+        </div>
+        <button class="apply-btn" onclick="applyBannerSize()">適用する →</button>
+        <div class="computed-size" id="computedSize">
+          <div class="cs-row"><span class="cs-key">指定幅</span><span class="cs-val hi" id="csW">—</span></div>
+          <div class="cs-row"><span class="cs-key">計算後 H</span><span class="cs-val" id="csH">—</span></div>
+          <div class="cs-row"><span class="cs-key">元画像比率</span><span class="cs-val" id="csRatio">—</span></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="section-label">⑤ 表示スケール</div>
+        <div class="scale-row">
+          <input type="range" id="scaleSlider" min="15" max="150" value="70" oninput="updateScale(this.value)">
+          <span class="scale-val" id="scaleVal">70%</span>
+        </div>
+      </div>
+
+      <div id="spExtraControls" style="display:none;">
+        <div class="section-label">📱 SP モック追加設定</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+
+          <!-- 背景スクリーンショット -->
+          <div>
+            <div style="font-size:10px;color:var(--muted);margin-bottom:6px;">背景スクリーンショット</div>
+            <div class="drop-zone" id="bgDropZone" style="padding:12px 10px;">
+              <input type="file" id="bgFileInput" accept="image/*">
+              <span style="font-size:18px;">🖼</span>
+              <div class="drop-text" style="margin-top:4px;"><strong style="font-size:11px;">背景画像を設定</strong>クリック or ドロップ</div>
+            </div>
+            <button onclick="clearBg()" id="clearBgBtn" style="display:none;margin-top:6px;width:100%;background:none;border:1px solid var(--border);border-radius:7px;color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;padding:6px;cursor:pointer;">背景をクリア ×</button>
+          </div>
+
+          <!-- バナー縦位置 -->
+          <div>
+            <div style="font-size:10px;color:var(--muted);margin-bottom:6px;">バナー縦位置オフセット</div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div class="size-input-wrap" style="flex:1;">
+                <input class="size-input" type="number" id="bannerOffsetInput" value="0" min="-800" max="800" style="font-size:13px;" oninput="applyOffset()">
+                <span class="size-unit">px</span>
+              </div>
+              <button onclick="applyOffset()" class="apply-btn" style="margin-top:0;width:auto;padding:9px 14px;flex-shrink:0;">適用</button>
+            </div>
+            <div style="font-size:10px;color:var(--muted);margin-top:5px;line-height:1.6;">↑マイナスで上、プラスで下に移動</div>
+          </div>
+
+        </div>
+      </div>
+
+      <div>
+        <div class="section-label">⑥ 実機QRプレビュー</div>
+        <div class="qr-section">
+          <div class="qr-desc">Worker URLを設定してバナーをアップロードすれば、スキャンするだけで実機確認できます。</div>
+
+          <!-- Worker URL入力 -->
+          <div class="worker-input-wrap">
+            <input class="worker-input" id="workerUrl" type="url"
+              placeholder="https://xxx.workers.dev" 
+              oninput="onWorkerUrlChange()">
+            <button class="worker-set-btn" onclick="saveWorkerUrl()">保存</button>
+          </div>
+
+          <button class="send-btn" id="sendBtn" onclick="sendToWorker()" disabled>
+            <span>📡</span> スマホへ送信してQR生成
+          </button>
+
+          <div class="qr-state idle" id="qrState"><div class="qr-dot"></div><span id="qrStateText">Worker URLを設定してください</span></div>
+
+          <div class="qr-box" id="qrcode"></div>
+
+          <div class="qr-key-display" id="qrKeyDisplay">
+            <div class="qr-key-label">スキャン不要の場合はこのキーをスマホで入力</div>
+            <div class="qr-key-val" id="qrKeyVal">—</div>
+            <div class="qr-key-exp">5分後に自動削除</div>
+          </div>
+        </div>
+      </div>
+
+    </aside>
+
+    <main class="canvas">
+      <div class="empty-state" id="emptyState">
+        <div class="empty-icon">🖼</div>
+        <div class="empty-text">バナー画像をアップロードすると<br>デバイスフレームでプレビューできます</div>
+      </div>
+      <div class="preview-area" id="previewArea"></div>
+    </main>
+  </div>
+
+  <div class="info-bar" id="infoBar">
+    <div class="info-chip"><span class="chip-key">モード</span><span class="chip-val accent" id="ibMode">PC</span></div>
+    <div class="info-divider"></div>
+    <div class="info-chip"><span class="chip-key">デバイス</span><span class="chip-val" id="ibDevice">1440×900</span></div>
+    <div class="info-divider"></div>
+    <div class="info-chip"><span class="chip-key">バナー幅</span><span class="chip-val accent2" id="ibBanner">728px</span></div>
+    <div class="info-divider"></div>
+    <div class="info-chip"><span class="chip-key">H</span><span class="chip-val" id="ibHeight">auto</span></div>
+  </div>
+  <div class="zoom-controls">
+    <button class="zoom-btn" onclick="zoomStep(-10)">−</button>
+    <button class="zoom-btn" onclick="zoomStep(10)">＋</button>
+  </div>
+</div>
+
+
+<script>
+// ═══════════════════════════════════════
+//  MOBILE
+// ═══════════════════════════════════════
+let mpNatW=0, mpNatH=0, mpCurrentW=320, mpStep=10;
+let repeatTimer=null, repeatInterval=null;
+
+async function initMobilePreview() {
+  const ui = document.getElementById('mobile-ui');
+  ui.style.display = 'flex';
+  document.title = 'Banner Preview';
+
+  const params = new URLSearchParams(location.search);
+  const key    = params.get('key');
+  const workerUrl = params.get('w');
+
+  if (!key || !workerUrl) {
+    showMobileError('URLが正しくありません。\nPCで再度QRを生成してください。');
+    return;
+  }
+
+  try {
+    const res  = await fetch(`${decodeURIComponent(workerUrl)}/get?key=${key}`);
+    const data = await res.json();
+    if (data.error) { showMobileError('データが見つかりません。\n5分以内にスキャンしてください。'); return; }
+
+    mpNatW     = data.w;
+    mpNatH     = data.h;
+    mpCurrentW = data.bw || Math.min(data.w, screen.width);
+
+    const img = document.getElementById('mpBannerImg');
+    img.onload = () => {
+      document.getElementById('mpLoading').style.display = 'none';
+      document.getElementById('mpStage').classList.add('show');
+      document.getElementById('mpBar').style.display    = 'flex';
+      updateMobileDisplay();
+    };
+    img.onerror = () => showMobileError('画像の読み込みに失敗しました。');
+    img.src = data.src;
+  } catch(e) {
+    showMobileError('通信エラーが発生しました。\n' + e.message);
+  }
+}
+
+function showMobileError(msg) {
+  document.getElementById('mpLoading').innerHTML =
+    `<div style="font-size:36px;opacity:.3;">⚠️</div><div class="mp-err">${msg.replace(/\n/g,'<br>')}</div>`;
+}
+
+function updateMobileDisplay() {
+  const h = mpNatW > 0 ? Math.round(mpCurrentW * mpNatH / mpNatW) : 0;
+  document.getElementById('mpBannerWrap').style.width = mpCurrentW + 'px';
+  document.getElementById('mpValW').textContent  = mpCurrentW + ' px';
+  document.getElementById('mpValH').textContent  = h + ' px';
+  document.getElementById('mpSizeLabel').textContent = `${mpCurrentW} × ${h} px`;
+}
+
+function setStep(s) {
+  mpStep = s;
+  document.querySelectorAll('.mp-step').forEach(b => b.classList.remove('active'));
+  document.querySelector(`[data-step="${s}"]`).classList.add('active');
+}
+
+function adjustWidth(dir) {
+  mpCurrentW = Math.max(20, Math.min(window.innerWidth, mpCurrentW + (dir==='plus' ? mpStep : -mpStep)));
+  updateMobileDisplay();
+}
+function startRepeat(dir, e) {
+  if(e) e.preventDefault();
+  adjustWidth(dir);
+  repeatTimer = setTimeout(() => { repeatInterval = setInterval(() => adjustWidth(dir), 70); }, 360);
+}
+function stopRepeat() { clearTimeout(repeatTimer); clearInterval(repeatInterval); }
+
+
+// ═══════════════════════════════════════
+//  DESKTOP
+// ═══════════════════════════════════════
+let imgSrc=null, imgNatW=0, imgNatH=0, imgIsPng=false;
+let currentMode='pc', currentScale=70;
+let deviceW=1440, deviceH=900, bannerW=728;
+let bannerOffsetY=0, bgSrc=null;
+let workerBaseUrl = '';
+
+function initDesktop() {
+  document.getElementById('desktop-ui').style.display = 'block';
+
+  // 保存済みWorker URLを復元
+  const saved = localStorage.getItem('workerUrl');
+  if (saved) {
+    document.getElementById('workerUrl').value = saved;
+    workerBaseUrl = saved;
+    updateSendBtnState();
+  }
+
+  const dz = document.getElementById('dropZone');
+  const fi = document.getElementById('fileInput');
+  dz.addEventListener('click', () => fi.click());
+  dz.addEventListener('dragover',  e => { e.preventDefault(); dz.classList.add('drag-over'); });
+  dz.addEventListener('dragleave', ()  => dz.classList.remove('drag-over'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault(); dz.classList.remove('drag-over');
+    const f = e.dataTransfer.files[0];
+    if (f && f.type.startsWith('image/')) loadFile(f);
+  });
+  fi.addEventListener('change', e => { if(e.target.files[0]) loadFile(e.target.files[0]); });
+  document.getElementById('bannerW').addEventListener('keydown', e => { if(e.key==='Enter') applyBannerSize(); });
+
+  // 背景スクリーンショット
+  const bgDz = document.getElementById('bgDropZone');
+  const bgFi = document.getElementById('bgFileInput');
+  bgDz.addEventListener('click', () => bgFi.click());
+  bgDz.addEventListener('dragover', e => { e.preventDefault(); bgDz.classList.add('drag-over'); });
+  bgDz.addEventListener('dragleave', () => bgDz.classList.remove('drag-over'));
+  bgDz.addEventListener('drop', e => {
+    e.preventDefault(); bgDz.classList.remove('drag-over');
+    const f = e.dataTransfer.files[0];
+    if (f && f.type.startsWith('image/')) loadBgFile(f);
+  });
+  bgFi.addEventListener('change', e => { if(e.target.files[0]) loadBgFile(e.target.files[0]); });
+}
+
+function onWorkerUrlChange() {
+  workerBaseUrl = document.getElementById('workerUrl').value.trim().replace(/\/$/, '');
+  updateSendBtnState();
+}
+function saveWorkerUrl() {
+  workerBaseUrl = document.getElementById('workerUrl').value.trim().replace(/\/$/, '');
+  if (workerBaseUrl) {
+    localStorage.setItem('workerUrl', workerBaseUrl);
+    updateSendBtnState();
+    // 保存フィードバック
+    const btn = document.querySelector('.worker-set-btn');
+    btn.textContent = '✓'; setTimeout(() => btn.textContent = '保存', 1200);
+  }
+}
+function updateSendBtnState() {
+  const btn = document.getElementById('sendBtn');
+  btn.disabled = !(workerBaseUrl && imgSrc);
+  if (workerBaseUrl) {
+    document.getElementById('qrStateText').textContent = imgSrc ? 'バナーをアップロードして送信してください' : 'バナーをアップロードしてください';
+  }
+}
+
+function loadFile(file) {
+  const isPng = file.type === 'image/png';
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const img = new Image();
+    img.onload = () => {
+      imgNatW = img.naturalWidth; imgNatH = img.naturalHeight;
+      // プレビュー用（透過維持: PNGはpng、それ以外はjpeg）
+      const cp = document.createElement('canvas');
+      const sp = Math.min(1, 1400 / imgNatW);
+      cp.width  = Math.round(imgNatW * sp);
+      cp.height = Math.round(imgNatH * sp);
+      const ctx = cp.getContext('2d');
+      if (isPng) {
+        ctx.clearRect(0, 0, cp.width, cp.height); // 透過背景
+      }
+      ctx.drawImage(img, 0, 0, cp.width, cp.height);
+      imgSrc = isPng ? cp.toDataURL('image/png') : cp.toDataURL('image/jpeg', 0.85);
+      imgIsPng = isPng;
+
+      const gcd = (a,b) => b===0?a:gcd(b,a%b);
+      const g = gcd(imgNatW, imgNatH);
+      document.getElementById('origSize').textContent   = `${imgNatW} × ${imgNatH} px`;
+      document.getElementById('origAspect').textContent = `${imgNatW/g}:${imgNatH/g}`;
+      document.getElementById('fileName').textContent   = file.name;
+      document.getElementById('imgThumb').src           = imgSrc;
+      document.getElementById('imgInfo').classList.add('visible');
+      updateComputedSize(); render(); updateSendBtnState();
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function loadBgFile(file) {
+  const reader = new FileReader();
+  reader.onload = ev => {
+    bgSrc = ev.target.result;
+    document.getElementById('bgDropZone').querySelector('.drop-text strong').textContent = '✓ ' + file.name;
+    document.getElementById('clearBgBtn').style.display = 'block';
+    render();
+  };
+  reader.readAsDataURL(file);
+}
+
+function updateComputedSize() {
+  if(!imgNatW) return;
+  const h = Math.round(bannerW * imgNatH / imgNatW);
+  document.getElementById('csW').textContent     = `${bannerW} px`;
+  document.getElementById('csH').textContent     = `${h} px (auto)`;
+  document.getElementById('csRatio').textContent = `${(imgNatW/imgNatH).toFixed(3)} : 1`;
+  document.getElementById('computedSize').classList.add('visible');
+  document.getElementById('ibHeight').textContent = `${h}px`;
+}
+
+function setMode(m) {
+  currentMode = m;
+  document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`[data-mode="${m}"]`).classList.add('active');
+  document.getElementById('ibMode').textContent = m==='pc'?'PC':m==='phone'?'スマホ':'比較';
+  // SPモード時のみ追加コントロールを表示
+  document.getElementById('spExtraControls').style.display = (m === 'phone') ? 'block' : 'none';
+  render();
+}
+
+function applyOffset() {
+  bannerOffsetY = parseInt(document.getElementById('bannerOffsetInput').value) || 0;
+  render();
+}
+
+function clearBg() {
+  bgSrc = null;
+  document.getElementById('clearBgBtn').style.display = 'none';
+  document.getElementById('bgDropZone').querySelector('.drop-text strong').textContent = '背景画像を設定';
+  render();
+}
+function applyPreset(btn) {
+  deviceW = parseInt(btn.dataset.w); deviceH = parseInt(btn.dataset.h);
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('ibDevice').textContent = `${deviceW}×${deviceH}`;
+  if(deviceW <= 414) setMode('phone'); else setMode('pc');
+  render();
+}
+function applyBannerSize() {
+  const w = parseInt(document.getElementById('bannerW').value);
+  if(!w||w<=0) return;
+  bannerW = w;
+  document.getElementById('ibBanner').textContent = `${bannerW}px`;
+  updateComputedSize(); render();
+}
+function updateScale(v) {
+  currentScale = parseInt(v);
+  document.getElementById('scaleVal').textContent = v + '%';
+  document.getElementById('scaleSlider').value = v;
+  render();
+}
+function zoomStep(d) { updateScale(Math.min(150, Math.max(15, currentScale+d))); }
+
+// ── Workerへ送信してQR生成 ──
+async function sendToWorker() {
+  if(!imgSrc || !workerBaseUrl) return;
+
+  const btn      = document.getElementById('sendBtn');
+  const stateEl  = document.getElementById('qrState');
+  const stateTx  = document.getElementById('qrStateText');
+  const container = document.getElementById('qrcode');
+
+  btn.disabled = true;
+  btn.className = 'send-btn sending';
+  btn.innerHTML = '<span>⏳</span> 送信中…';
+  stateEl.className = 'qr-state idle';
+  container.innerHTML = '';
+  document.getElementById('qrKeyDisplay').style.display = 'none';
+
+  try {
+    // 送信用に圧縮（幅400px, quality 0.65）
+    const c = document.createElement('canvas');
+    const sc = Math.min(1, 400 / imgNatW);
+    c.width  = Math.round(imgNatW * sc);
+    c.height = Math.round(imgNatH * sc);
+    const tmpImg = new Image(); tmpImg.src = imgSrc;
+    await new Promise(r => { tmpImg.onload = r; if(tmpImg.complete) r(); });
+    c.getContext('2d').drawImage(tmpImg, 0, 0, c.width, c.height);
+    const compressed = c.toDataURL('image/jpeg', 0.65);
+
+    const res  = await fetch(`${workerBaseUrl}/store`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ src: compressed, w: imgNatW, h: imgNatH, bw: bannerW })
+    });
+    const { key } = await res.json();
+
+    // QR生成: NetlifyのURL + key + workerURL
+    const pageBase = location.href.split('?')[0];
+    const qrUrl = `${pageBase}?m&key=${key}&w=${encodeURIComponent(workerBaseUrl)}`;
+
+    new QRCode(container, {
+      text: qrUrl, width: 180, height: 180,
+      colorDark: '#0e0e10', colorLight: '#f5f5f5',
+      correctLevel: QRCode.CorrectLevel.M
+    });
+
+    document.getElementById('qrKeyVal').textContent = key;
+    document.getElementById('qrKeyDisplay').style.display = 'block';
+
+    stateEl.className = 'qr-state ok';
+    stateTx.textContent = 'QR生成完了 — スキャンして実機確認（5分有効）';
+
+    btn.className = 'send-btn sent';
+    btn.innerHTML = '<span>✓</span> 送信済み';
+    setTimeout(() => {
+      btn.disabled = false;
+      btn.className = 'send-btn';
+      btn.innerHTML = '<span>📡</span> スマホへ送信してQR生成';
+    }, 3000);
+
+  } catch(e) {
+    stateEl.className = 'qr-state warn';
+    stateTx.textContent = '送信失敗: ' + e.message;
+    btn.disabled = false;
+    btn.className = 'send-btn';
+    btn.innerHTML = '<span>📡</span> スマホへ送信してQR生成';
+  }
+}
+
+// ── RENDER ──
+function render() {
+  if(!imgSrc) return;
+  const area = document.getElementById('previewArea');
+  document.getElementById('emptyState').style.display = 'none';
+  area.classList.add('visible');
+  document.getElementById('infoBar').classList.add('visible');
+  const s = currentScale/100;
+  if(currentMode==='pc') area.innerHTML = buildPC(s);
+  else if(currentMode==='phone') area.innerHTML = buildPhone(s);
+  else area.innerHTML = `<div class="compare-wrap">
+    <div class="compare-item"><div class="compare-label">🖥 PC</div>${buildPC(s*0.55)}</div>
+    <div class="compare-item"><div class="compare-label">📱 スマホ</div>${buildPhone(s)}</div>
+  </div>`;
+}
+
+function bannerLabel(w) {
+  return imgNatW ? `${w} × ${Math.round(w*imgNatH/imgNatW)} px` : `${w} × auto`;
+}
+
+function buildPC(s) {
+  const vw=Math.round(deviceW*s), vh=Math.round(Math.min(deviceH,680)*s);
+  const bwPx=Math.min(bannerW,deviceW), bwScaled=Math.round(bwPx*s);
+  const mp=Math.round(9*s),bp=Math.round(12*s),lH=Math.round(7*s),lg=Math.round(8*s);
+  const lw=Math.round(30*s),lh=Math.round(14*s),niw=Math.round(27*s),nih=Math.round(6*s);
+  const bannerBg = imgIsPng ? 'background:transparent;' : 'background:#e8e8e8;';
+  return `<div class="pc-frame" style="width:${vw}px;">
+    <div class="pc-bar"><div class="pc-dot red"></div><div class="pc-dot yel"></div><div class="pc-dot grn"></div><div class="pc-url">example.com</div></div>
+    <div class="pc-viewport" style="height:${vh}px;">
+      <div class="frame-page">
+        <div class="mock-ui" style="padding:${mp}px ${Math.round(13*s)}px;">
+          <div class="mock-logo" style="width:${lw}px;height:${lh}px;"></div>
+          <div class="mock-nav"><div class="mock-nav-item" style="width:${niw}px;height:${nih}px;"></div><div class="mock-nav-item" style="width:${niw}px;height:${nih}px;"></div><div class="mock-nav-item" style="width:${niw}px;height:${nih}px;"></div></div>
+        </div>
+        <div style="width:${bwScaled}px;margin:${Math.round(6*s)}px auto 0;flex-shrink:0;overflow:hidden;${bannerBg}">
+          <img src="${imgSrc}" alt="banner" draggable="false" style="width:100%;height:auto;display:block;">
+        </div>
+        <div style="text-align:center;font-family:'DM Mono',monospace;font-size:${Math.round(10*s)}px;color:#888;margin-top:${Math.round(3*s)}px;">${bannerLabel(bwPx)}</div>
+        <div class="mock-body" style="padding:${bp}px;gap:${lg}px;">
+          <div class="mock-line med" style="height:${lH}px;"></div><div class="mock-line short" style="height:${lH}px;"></div>
+          <div class="mock-line" style="height:${lH}px;width:72%;"></div><div class="mock-line med" style="height:${lH}px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// デバイス定義: [border-radius, notch-w, notch-h, notch-top, btn positions]
+const PHONE_MODELS = {
+  375: { name:'SE',      br:50, nw:125, nh:35, nt:14, homeBtn:false, PH:667 }, // SEは15と同形状・幅375・高さ667
+  390: { name:'i15',     br:50, nw:125, nh:35, nt:14, homeBtn:false, PH:844 },
+  360: { name:'android', br:22, nw:90,  nh:28, nt:12, homeBtn:false, PH:780 },
+};
+
+function buildPhone(s) {
+  const model = PHONE_MODELS[deviceW] || PHONE_MODELS[390];
+  const PW = deviceW, PH = model.PH || deviceH;
+  const pw=Math.round(PW*s), ph=Math.round(PH*s);
+  const br=Math.round(model.br*s);
+  const pt=Math.round(58*s), pb=Math.round(28*s);
+  const bwPx=Math.min(bannerW,PW), bwScaled=Math.round(bwPx*s);
+  const lw=Math.round(26*s), lh=Math.round(12*s);
+  const mp=Math.round(7*s), bp=Math.round(10*s), lH=Math.round(6*s), lg=Math.round(7*s);
+  const offsetScaled=Math.round(bannerOffsetY*s);
+  const bannerBg = imgIsPng ? 'background:transparent;' : 'background:#e8e8e8;';
+
+  // ノッチ
+  let notchHtml = '';
+  if (model.nw > 0) {
+    const nw=Math.round(model.nw*s), nh=Math.round(model.nh*s), nt=Math.round(model.nt*s);
+    if (model.name==='android') {
+      notchHtml = `<div style="position:absolute;left:50%;transform:translateX(-50%);top:${nt}px;width:${nw}px;height:${nh}px;background:#1a1a22;border-radius:${Math.round(8*s)}px;z-index:10;"></div>`;
+    } else {
+      notchHtml = `<div style="position:absolute;left:50%;transform:translateX(-50%);top:${nt}px;width:${nw}px;height:${nh}px;background:#111;border-radius:${Math.round(18*s)}px;z-index:10;display:flex;align-items:center;justify-content:center;gap:${Math.round(6*s)}px;">
+        <div style="width:${Math.round(9*s)}px;height:${Math.round(9*s)}px;background:#222;border-radius:50%;border:1.5px solid #333;"></div>
+        <div style="width:${Math.round(30*s)}px;height:${Math.round(4*s)}px;background:#222;border-radius:3px;"></div>
+      </div>`;
+    }
+  }
+
+  const navHtml = `<div style="width:100%;background:white;border-bottom:1px solid #ddd;display:flex;align-items:center;padding:${mp}px ${Math.round(11*s)}px;flex-shrink:0;">
+    <div style="background:#ddd;border-radius:3px;width:${lw}px;height:${lh}px;"></div>
+  </div>`;
+
+  let viewportContent = '';
+  if (!bgSrc) {
+    viewportContent = `
+      ${navHtml}
+      <div style="display:flex;flex-direction:column;align-items:center;background:#f0f0f0;width:100%;">
+        <div style="height:${Math.round(4*s)+offsetScaled}px;"></div>
+        <div style="flex-shrink:0;overflow:hidden;${bannerBg}width:${bwScaled}px;">
+          <img src="${imgSrc}" alt="banner" draggable="false" style="width:100%;height:auto;display:block;">
+        </div>
+        <div style="font-family:'DM Mono',monospace;font-size:${Math.round(10*s)}px;color:#888;margin-top:${Math.round(3*s)}px;letter-spacing:.04em;">${bannerLabel(bwPx)}</div>
+        <div style="width:100%;display:flex;flex-direction:column;padding:${bp}px;gap:${lg}px;">
+          <div style="background:#ddd;border-radius:3px;height:${lH}px;width:78%;"></div>
+          <div style="background:#ddd;border-radius:3px;height:${lH}px;width:55%;"></div>
+          <div style="background:#ddd;border-radius:3px;height:${lH}px;width:74%;"></div>
+        </div>
+      </div>`;
+  } else {
+    viewportContent = `
+      <div style="position:relative;width:100%;">
+        <img src="${bgSrc}" alt="bg" style="width:100%;height:auto;display:block;" draggable="false">
+        <div style="position:absolute;top:0;left:0;right:0;display:flex;flex-direction:column;align-items:center;">
+          ${navHtml}
+          <div style="height:${Math.round(4*s)+offsetScaled}px;"></div>
+          <div style="flex-shrink:0;overflow:hidden;${bannerBg}width:${bwScaled}px;">
+            <img src="${imgSrc}" alt="banner" draggable="false" style="width:100%;height:auto;display:block;">
+          </div>
+          <div style="font-family:'DM Mono',monospace;font-size:${Math.round(10*s)}px;color:rgba(255,255,255,.85);margin-top:${Math.round(3*s)}px;text-shadow:0 1px 3px rgba(0,0,0,.6);">${bannerLabel(bwPx)}</div>
+        </div>
+      </div>`;
+  }
+
+  return `<div style="position:relative;display:inline-block;">
+    <div style="background:#1a1a22;border:2.5px solid #444;box-shadow:inset 0 0 0 1.5px #222,0 0 0 1px #111,0 28px 70px rgba(0,0,0,.65);overflow:hidden;position:relative;width:${pw}px;height:${ph}px;border-radius:${br}px;">
+      ${notchHtml}
+      <div style="overflow:hidden;overflow-y:auto;height:${ph}px;padding-top:${pt}px;padding-bottom:${pb}px;scrollbar-width:none;">
+        ${viewportContent}
+      </div>
+    </div>
+    <div style="position:absolute;background:#333;border-radius:3px;left:-4px;width:3px;top:${Math.round(98*s)}px;height:${Math.round(34*s)}px;"></div>
+    <div style="position:absolute;background:#333;border-radius:3px;left:-4px;width:3px;top:${Math.round(144*s)}px;height:${Math.round(34*s)}px;"></div>
+    <div style="position:absolute;background:#333;border-radius:3px;right:-4px;width:3px;top:${Math.round(118*s)}px;height:${Math.round(50*s)}px;"></div>
+  </div>`;
+}
+
+// ══ ROUTING ══
+(function() {
+  const params   = new URLSearchParams(location.search);
+  const isMobile = params.has('m');
+  document.body.className = isMobile ? 'mobile-preview' : 'desktop-ui';
+  if(document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', isMobile ? initMobilePreview : initDesktop);
+  } else {
+    isMobile ? initMobilePreview() : initDesktop();
+  }
+})();
+</script>
+</body>
+</html>
