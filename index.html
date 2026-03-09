@@ -307,7 +307,6 @@ input[type="range"]::-webkit-slider-thumb { -webkit-appearance:none; width:13px;
         <div class="view-toggle">
           <button class="toggle-btn active" data-mode="pc"      onclick="setMode('pc')"><span>🖥</span> PC / Desktop</button>
           <button class="toggle-btn"        data-mode="phone"   onclick="setMode('phone')"><span>📱</span> スマートフォン</button>
-          <button class="toggle-btn"        data-mode="compare" onclick="setMode('compare')"><span>◫</span> 並べて比較</button>
         </div>
       </div>
 
@@ -667,7 +666,7 @@ function setMode(m) {
   currentMode = m;
   document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
   document.querySelector(`[data-mode="${m}"]`).classList.add('active');
-  document.getElementById('ibMode').textContent = m==='pc'?'PC':m==='phone'?'スマホ':'比較';
+  document.getElementById('ibMode').textContent = m==='pc'?'PC':'スマホ';
   // SPモード時のみ追加コントロールを表示
   document.getElementById('spExtraControls').style.display = (m === 'phone') ? 'block' : 'none';
   render();
