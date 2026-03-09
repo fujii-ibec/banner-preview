@@ -332,6 +332,14 @@ input[type="range"]::-webkit-slider-thumb { -webkit-appearance:none; width:13px;
           </div>
           <div class="auto-badge"><span class="ab-key">H</span>AUTO</div>
         </div>
+        <div style="display:flex;gap:4px;margin-top:6px;">
+          <button onclick="stepBannerW(-100)" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;padding:5px 0;cursor:pointer;">-100</button>
+          <button onclick="stepBannerW(-10)"  style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;padding:5px 0;cursor:pointer;">-10</button>
+          <button onclick="stepBannerW(-1)"   style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;padding:5px 0;cursor:pointer;">-1</button>
+          <button onclick="stepBannerW(1)"    style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--accent);font-family:'DM Mono',monospace;font-size:10px;padding:5px 0;cursor:pointer;">+1</button>
+          <button onclick="stepBannerW(10)"   style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--accent);font-family:'DM Mono',monospace;font-size:10px;padding:5px 0;cursor:pointer;">+10</button>
+          <button onclick="stepBannerW(100)"  style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--accent);font-family:'DM Mono',monospace;font-size:10px;padding:5px 0;cursor:pointer;">+100</button>
+        </div>
         <button class="apply-btn" onclick="applyBannerSize()">適用する →</button>
         <div class="computed-size" id="computedSize">
           <div class="cs-row"><span class="cs-key">指定幅</span><span class="cs-val hi" id="csW">—</span></div>
@@ -363,6 +371,19 @@ input[type="range"]::-webkit-slider-thumb { -webkit-appearance:none; width:13px;
             <button onclick="clearBg()" id="clearBgBtn" style="display:none;margin-top:6px;width:100%;background:none;border:1px solid var(--border);border-radius:7px;color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;padding:6px;cursor:pointer;">背景をクリア ×</button>
           </div>
 
+          <!-- マスクオーバーレイ -->
+          <div>
+            <div style="font-size:10px;color:var(--muted);margin-bottom:6px;">マスクオーバーレイ</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <span style="font-size:11px;color:var(--fg);">背景を暗くする（30%）</span>
+              <label style="position:relative;display:inline-block;width:36px;height:20px;cursor:pointer;">
+                <input type="checkbox" id="maskToggle" onchange="render()" style="opacity:0;width:0;height:0;">
+                <span id="maskTrack" style="position:absolute;inset:0;background:#444;border-radius:20px;transition:.2s;"></span>
+                <span id="maskThumb" style="position:absolute;left:3px;top:3px;width:14px;height:14px;background:white;border-radius:50%;transition:.2s;"></span>
+              </label>
+            </div>
+          </div>
+
           <!-- バナー縦位置 -->
           <div>
             <div style="font-size:10px;color:var(--muted);margin-bottom:6px;">バナー縦位置オフセット</div>
@@ -372,6 +393,14 @@ input[type="range"]::-webkit-slider-thumb { -webkit-appearance:none; width:13px;
                 <span class="size-unit">px</span>
               </div>
               <button onclick="applyOffset()" class="apply-btn" style="margin-top:0;width:auto;padding:9px 14px;flex-shrink:0;">適用</button>
+            </div>
+            <div style="display:flex;gap:4px;margin-top:6px;">
+              <button onclick="stepOffset(-100)" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;padding:5px 0;cursor:pointer;">-100</button>
+              <button onclick="stepOffset(-10)"  style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;padding:5px 0;cursor:pointer;">-10</button>
+              <button onclick="stepOffset(-1)"   style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;padding:5px 0;cursor:pointer;">-1</button>
+              <button onclick="stepOffset(1)"    style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--accent);font-family:'DM Mono',monospace;font-size:10px;padding:5px 0;cursor:pointer;">+1</button>
+              <button onclick="stepOffset(10)"   style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--accent);font-family:'DM Mono',monospace;font-size:10px;padding:5px 0;cursor:pointer;">+10</button>
+              <button onclick="stepOffset(100)"  style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--accent);font-family:'DM Mono',monospace;font-size:10px;padding:5px 0;cursor:pointer;">+100</button>
             </div>
             <div style="font-size:10px;color:var(--muted);margin-top:5px;line-height:1.6;">↑マイナスで上、プラスで下に移動</div>
           </div>
@@ -644,10 +673,31 @@ function setMode(m) {
   render();
 }
 
+function stepOffset(delta) {
+  const input = document.getElementById('bannerOffsetInput');
+  const val = Math.max(-800, Math.min(800, (parseInt(input.value) || 0) + delta));
+  input.value = val;
+  applyOffset();
+}
+
 function applyOffset() {
   bannerOffsetY = parseInt(document.getElementById('bannerOffsetInput').value) || 0;
   render();
 }
+
+function getMaskOn() {
+  const el = document.getElementById('maskToggle');
+  return el ? el.checked : false;
+}
+
+// トグルのビジュアル更新
+document.addEventListener('change', function(e) {
+  if (e.target.id === 'maskToggle') {
+    const on = e.target.checked;
+    document.getElementById('maskTrack').style.background = on ? '#4a9eff' : '#444';
+    document.getElementById('maskThumb').style.left = on ? '19px' : '3px';
+  }
+});
 
 function clearBg() {
   bgSrc = null;
@@ -663,6 +713,13 @@ function applyPreset(btn) {
   if(deviceW <= 414) setMode('phone'); else setMode('pc');
   render();
 }
+function stepBannerW(delta) {
+  const input = document.getElementById('bannerW');
+  const val = Math.max(1, (parseInt(input.value) || 728) + delta);
+  input.value = val;
+  applyBannerSize();
+}
+
 function applyBannerSize() {
   const w = parseInt(document.getElementById('bannerW').value);
   if(!w||w<=0) return;
@@ -849,7 +906,8 @@ function buildPhone(s) {
     viewportContent = `
       <div style="position:relative;width:100%;">
         <img src="${bgSrc}" alt="bg" style="width:100%;height:auto;display:block;" draggable="false">
-        <div style="position:absolute;top:0;left:0;right:0;display:flex;flex-direction:column;align-items:center;">
+        ${getMaskOn() ? `<div style="position:absolute;inset:0;background:rgba(0,0,0,0.3);z-index:1;"></div>` : ''}
+        <div style="position:absolute;top:0;left:0;right:0;z-index:2;display:flex;flex-direction:column;align-items:center;">
           ${navHtml}
           <div style="height:${Math.round(4*s)+offsetScaled}px;"></div>
           <div style="flex-shrink:0;overflow:hidden;${bannerBg}width:${bwScaled}px;">
