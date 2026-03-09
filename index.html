@@ -907,7 +907,6 @@ function buildPhone(s) {
         <img src="${bgSrc}" alt="bg" style="width:100%;height:auto;display:block;" draggable="false">
         ${getMaskOn() ? `<div style="position:absolute;inset:0;background:rgba(0,0,0,0.3);z-index:1;"></div>` : ''}
         <div style="position:absolute;top:0;left:0;right:0;z-index:2;display:flex;flex-direction:column;align-items:center;">
-          ${navHtml}
           <div style="height:${Math.round(4*s)+offsetScaled}px;"></div>
           <div style="flex-shrink:0;overflow:hidden;${bannerBg}width:${bwScaled}px;">
             <img src="${imgSrc}" alt="banner" draggable="false" style="width:100%;height:auto;display:block;">
