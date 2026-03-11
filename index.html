@@ -204,6 +204,7 @@ input[type="range"]::-webkit-slider-thumb { -webkit-appearance:none; width:13px;
 .notch-cam { background:#111; border-radius:50%; border:1.5px solid #2a2a35; }
 .notch-speaker { background:#111; border-radius:3px; }
 .phone-viewport { overflow:hidden; overflow-y:auto; background:#f5f5f5; scrollbar-width:none; }
+.bg-scroll::-webkit-scrollbar { display:none; }
 .phone-viewport::-webkit-scrollbar { display:none; }
 .phone-btn { position:absolute; background:#333; border-radius:3px; left:-4px; width:3px; }
 .phone-btn-pwr { right:-4px; left:auto; }
@@ -803,7 +804,7 @@ async function sendToWorker() {
 
 // ── RENDER ──
 function render() {
-  if(!imgSrc) return;
+  if(!imgSrc && !bgSrc) return;
   const area = document.getElementById('previewArea');
   document.getElementById('emptyState').style.display = 'none';
   area.classList.add('visible');
@@ -920,16 +921,20 @@ function buildPhone(s) {
         </div>
       </div>`;
   } else {
+    const bannerHtml = imgSrc ? `
+      <div style="flex-shrink:0;overflow:hidden;${bannerBg}width:${bwScaled}px;">
+        <img src="${imgSrc}" alt="banner" draggable="false" style="width:100%;height:auto;display:block;">
+      </div>
+      <div style="font-family:'DM Mono',monospace;font-size:${Math.round(10*s)}px;color:rgba(255,255,255,.85);margin-top:${Math.round(3*s)}px;text-shadow:0 1px 3px rgba(0,0,0,.6);">${bannerLabel(bwPx)}</div>` : '';
     viewportContent = `
-      <div style="position:relative;width:${pw}px;height:${screenH}px;overflow:hidden;flex-shrink:0;background:#111;">
-        <img src="${bgSrc}" alt="bg" style="width:100%;height:100%;object-fit:cover;object-position:top;display:block;" draggable="false">
-        ${getMaskOn() ? `<div style="position:absolute;inset:0;background:rgba(0,0,0,0.3);z-index:1;"></div>` : ''}
-        <div style="position:absolute;top:0;left:0;right:0;z-index:2;display:flex;flex-direction:column;align-items:center;">
+      <div style="position:relative;width:${pw}px;height:${screenH}px;flex-shrink:0;">
+        <div style="position:relative;width:${pw}px;height:${screenH}px;overflow-y:auto;overflow-x:hidden;flex-shrink:0;scrollbar-width:none;" class="bg-scroll">
+          <img src="${bgSrc}" alt="bg" style="width:100%;height:auto;min-height:100%;display:block;object-position:top;" draggable="false">
+        </div>
+        ${getMaskOn() ? `<div style="position:absolute;inset:0;background:rgba(0,0,0,0.3);z-index:3;pointer-events:none;"></div>` : ''}
+        <div style="position:absolute;top:0;left:0;right:0;z-index:4;display:flex;flex-direction:column;align-items:center;pointer-events:none;">
           <div style="height:${Math.round(4*s)+offsetScaled}px;"></div>
-          <div style="flex-shrink:0;overflow:hidden;${bannerBg}width:${bwScaled}px;">
-            <img src="${imgSrc}" alt="banner" draggable="false" style="width:100%;height:auto;display:block;">
-          </div>
-          <div style="font-family:'DM Mono',monospace;font-size:${Math.round(10*s)}px;color:rgba(255,255,255,.85);margin-top:${Math.round(3*s)}px;text-shadow:0 1px 3px rgba(0,0,0,.6);">${bannerLabel(bwPx)}</div>
+          ${bannerHtml}
         </div>
       </div>`;
   }
