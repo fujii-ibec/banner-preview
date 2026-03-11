@@ -850,28 +850,43 @@ function buildPC(s) {
 
 // デバイス定義: [border-radius, notch-w, notch-h, notch-top, btn positions]
 const PHONE_MODELS = {
-  375: { name:'SE',      br:50, nw:125, nh:35, nt:14, homeBtn:false, PH:667 }, // SEは15と同形状・幅375・高さ667
+  375: { name:'SE', br:50, nw:0, nh:0, nt:0, homeBtn:true, PH:667+52+70 },
   390: { name:'i15',     br:50, nw:125, nh:35, nt:14, homeBtn:false, PH:844 },
   360: { name:'android', br:22, nw:90,  nh:28, nt:12, homeBtn:false, PH:780 },
 };
 
 function buildPhone(s) {
   const model = PHONE_MODELS[deviceW] || PHONE_MODELS[390];
-  const PW = deviceW, PH = model.PH || deviceH;
-  const pw=Math.round(PW*s), ph=Math.round(PH*s);
-  const br=Math.round(model.br*s);
-  const pt=Math.round(58*s), pb=Math.round(28*s);
-  const bwPx=Math.min(bannerW,PW), bwScaled=Math.round(bwPx*s);
-  const lw=Math.round(26*s), lh=Math.round(12*s);
-  const mp=Math.round(7*s), bp=Math.round(10*s), lH=Math.round(6*s), lg=Math.round(7*s);
-  const offsetScaled=Math.round(bannerOffsetY*s);
+  const isSE = model.name === 'SE';
+  const PW = deviceW, PH = model.PH;
+  const pw = Math.round(PW*s), ph = Math.round(PH*s);
+  const br = Math.round(model.br*s);
+  const bwPx = Math.min(bannerW, PW), bwScaled = Math.round(bwPx*s);
+  const lw = Math.round(26*s), lh = Math.round(12*s);
+  const mp = Math.round(7*s), bp = Math.round(10*s), lH = Math.round(6*s), lg = Math.round(7*s);
+  const offsetScaled = Math.round(bannerOffsetY*s);
   const bannerBg = imgIsPng ? 'background:transparent;' : 'background:#e8e8e8;';
 
-  // ノッチ
+  // SE専用のpadding / 他モデルは従来値
+  const pt = Math.round((isSE ? 52 : 44)*s);
+  const ptBg = bgSrc && !isSE ? 0 : pt;
+  const pb = Math.round((isSE ? 70 : 28)*s);
+
+  // ノッチ / フレーム上部
   let notchHtml = '';
-  if (model.nw > 0) {
-    const nw=Math.round(model.nw*s), nh=Math.round(model.nh*s), nt=Math.round(model.nt*s);
-    if (model.name==='android') {
+  let homeHtml = '';
+  if (isSE) {
+    notchHtml = `<div style="position:absolute;top:0;left:0;right:0;height:${pt}px;background:#1a1a22;z-index:10;display:flex;align-items:center;justify-content:center;gap:${Math.round(10*s)}px;">
+      <div style="width:${Math.round(6*s)}px;height:${Math.round(6*s)}px;background:#2e3a4a;border-radius:50%;border:1px solid #3a4a5a;"></div>
+      <div style="width:${Math.round(38*s)}px;height:${Math.round(4*s)}px;background:#222;border-radius:3px;"></div>
+    </div>`;
+    const hbSize = Math.round(46*s);
+    homeHtml = `<div style="position:absolute;bottom:${Math.round(12*s)}px;left:50%;transform:translateX(-50%);width:${hbSize}px;height:${hbSize}px;border-radius:50%;background:#222;border:2px solid #3a3a3a;z-index:10;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 0 2px #111;">
+      <div style="width:${Math.round(22*s)}px;height:${Math.round(22*s)}px;border-radius:50%;border:1.5px solid #444;background:#1a1a22;"></div>
+    </div>`;
+  } else if (model.nw > 0) {
+    const nw = Math.round(model.nw*s), nh = Math.round(model.nh*s), nt = Math.round(model.nt*s);
+    if (model.name === 'android') {
       notchHtml = `<div style="position:absolute;left:50%;transform:translateX(-50%);top:${nt}px;width:${nw}px;height:${nh}px;background:#1a1a22;border-radius:${Math.round(8*s)}px;z-index:10;"></div>`;
     } else {
       notchHtml = `<div style="position:absolute;left:50%;transform:translateX(-50%);top:${nt}px;width:${nw}px;height:${nh}px;background:#111;border-radius:${Math.round(18*s)}px;z-index:10;display:flex;align-items:center;justify-content:center;gap:${Math.round(6*s)}px;">
@@ -884,6 +899,9 @@ function buildPhone(s) {
   const navHtml = `<div style="width:100%;background:white;border-bottom:1px solid #ddd;display:flex;align-items:center;padding:${mp}px ${Math.round(11*s)}px;flex-shrink:0;">
     <div style="background:#ddd;border-radius:3px;width:${lw}px;height:${lh}px;"></div>
   </div>`;
+
+  // 背景エリア高さ: SEは667px固定、i15/androidはph全体（下まで表示）
+  const screenH = isSE ? Math.round(667*s) : ph;
 
   let viewportContent = '';
   if (!bgSrc) {
@@ -903,8 +921,8 @@ function buildPhone(s) {
       </div>`;
   } else {
     viewportContent = `
-      <div style="position:relative;width:100%;">
-        <img src="${bgSrc}" alt="bg" style="width:100%;height:auto;display:block;" draggable="false">
+      <div style="position:relative;width:${pw}px;height:${screenH}px;overflow:hidden;flex-shrink:0;background:#111;">
+        <img src="${bgSrc}" alt="bg" style="width:100%;height:100%;object-fit:cover;object-position:top;display:block;" draggable="false">
         ${getMaskOn() ? `<div style="position:absolute;inset:0;background:rgba(0,0,0,0.3);z-index:1;"></div>` : ''}
         <div style="position:absolute;top:0;left:0;right:0;z-index:2;display:flex;flex-direction:column;align-items:center;">
           <div style="height:${Math.round(4*s)+offsetScaled}px;"></div>
@@ -919,7 +937,8 @@ function buildPhone(s) {
   return `<div style="position:relative;display:inline-block;">
     <div style="background:#1a1a22;border:2.5px solid #444;box-shadow:inset 0 0 0 1.5px #222,0 0 0 1px #111,0 28px 70px rgba(0,0,0,.65);overflow:hidden;position:relative;width:${pw}px;height:${ph}px;border-radius:${br}px;">
       ${notchHtml}
-      <div style="overflow:hidden;overflow-y:auto;height:${ph}px;padding-top:${pt}px;padding-bottom:${pb}px;scrollbar-width:none;">
+      ${homeHtml}
+      <div style="overflow:hidden;overflow-y:auto;height:${ph}px;padding-top:${ptBg}px;padding-bottom:${pb}px;scrollbar-width:none;">
         ${viewportContent}
       </div>
     </div>
